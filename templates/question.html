@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Grammar Checker</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow: auto;
+        }
+
+        .background-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -2;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: -1;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .feature-row {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            margin: 22px 0 4px;
+        }
+
+        .feature {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            color: #475569;
+            font-size: 12px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .feature strong {
+            color: #312e81;
+            display: block;
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .eyebrow {
+            color: #6366f1;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #4f46e5;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #555;
+            font-size: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            resize: none;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 17px;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+        }
+
+        .input-meta {
+            color: #6b7280;
+            display: flex;
+            font-size: 13px;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: #4f46e5;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #3730a3;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        .error {
+            margin-top: 15px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 12px;
+            color: #dc2626;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .loading-screen {
+            align-items: center;
+            background: rgba(15, 23, 42, 0.88);
+            color: white;
+            display: none;
+            inset: 0;
+            justify-content: center;
+            position: fixed;
+            z-index: 5;
+        }
+
+        .loading-screen.visible {
+            display: flex;
+        }
+
+        .loading-card {
+            max-width: 360px;
+            padding: 30px 24px;
+            text-align: center;
+            width: calc(100% - 40px);
+        }
+
+        .loader {
+            animation: pulse 1.2s ease-in-out infinite;
+            background: #818cf8;
+            border-radius: 50%;
+            box-shadow: 0 0 0 12px rgba(129, 140, 248, 0.15);
+            height: 22px;
+            margin: 0 auto 26px;
+            width: 22px;
+        }
+
+        .loading-card h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .loading-card p {
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        @keyframes pulse {
+            50% { transform: scale(1.3); }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 26px 20px;
+                width: calc(100% - 28px);
+            }
+
+            .header h1 {
+                font-size: 27px;
+            }
+
+            .feature-row {
+                grid-template-columns: 1fr;
+            }
+
+            .feature {
+                padding: 9px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <video
+        class="background-video"
+        autoplay
+        muted
+        loop
+        playsinline
+    >
+
+        <source
+            src="{{ url_for('static', filename='istock.mp4') }}"
+            type="video/mp4"
+        >
+
+    </video>
+
+    <div class="overlay"></div>
+
+
+    <div class="container">
+
+        <div class="header">
+
+            <div class="eyebrow">Write with confidence</div>
+
+            <h1>🤖 AI Grammar Checker</h1>
+
+            <p>Enter your sentence and let AI correct it</p>
+
+        </div>
+
+
+        <form action="/check" method="POST">
+
+            <label for="sentence">
+                Enter your sentence
+            </label>
+
+            <textarea
+                id="sentence"
+                name="sentence"
+                placeholder="Example: I go to Chennai yesterday"
+                maxlength="1000"
+                required
+            >{{ sentence|default('', true) }}</textarea>
+
+            <div class="input-meta">
+                <span>Keep the original meaning</span>
+                <span id="counter">0 / 1000</span>
+            </div>
+
+
+            <button id="submit-button" type="submit">
+                <span id="button-label">✨ Check Grammar</span>
+            </button>
+
+        </form>
+
+        <div class="feature-row" aria-label="Grammar checker features">
+            <div class="feature"><strong>01</strong>Grammar</div>
+            <div class="feature"><strong>02</strong>Spelling</div>
+            <div class="feature"><strong>03</strong>Clarity</div>
+        </div>
+
+
+        {% if error %}
+
+        <div class="error">
+            {{ error }}
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    <div class="loading-screen" id="loading-screen" aria-live="polite" aria-hidden="true">
+        <div class="loading-card">
+            <div class="loader"></div>
+            <h2 id="loading-title">Polishing your sentence</h2>
+            <p id="loading-message">Checking grammar, spelling, and punctuation with AI.</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.querySelector("form");
+        const textarea = document.querySelector("#sentence");
+        const counter = document.querySelector("#counter");
+        const submitButton = document.querySelector("#submit-button");
+        const buttonLabel = document.querySelector("#button-label");
+        const loadingScreen = document.querySelector("#loading-screen");
+        const loadingTitle = document.querySelector("#loading-title");
+        const loadingMessage = document.querySelector("#loading-message");
+        const loadingStates = [
+            ["Polishing your sentence", "Checking grammar, spelling, and punctuation with AI."],
+            ["Finding the clearest wording", "Preserving your meaning while improving the flow."],
+            ["Almost ready", "Putting the final correction together for you."]
+        ];
+
+        function updateCounter() {
+            counter.textContent = `${textarea.value.length} / 1000`;
+        }
+
+        textarea.addEventListener("input", updateCounter);
+        updateCounter();
+
+        form.addEventListener("submit", () => {
+            submitButton.disabled = true;
+            buttonLabel.textContent = "Checking...";
+            loadingScreen.classList.add("visible");
+            loadingScreen.setAttribute("aria-hidden", "false");
+
+            let stateIndex = 0;
+            setInterval(() => {
+                stateIndex = (stateIndex + 1) % loadingStates.length;
+                loadingTitle.textContent = loadingStates[stateIndex][0];
+                loadingMessage.textContent = loadingStates[stateIndex][1];
+            }, 1800);
+        });
+    </script>
+
+</body>
+
+</html>
